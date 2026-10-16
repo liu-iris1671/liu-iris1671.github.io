@@ -32,18 +32,18 @@
   --line:      rgba(255,255,255,.10);
   --card:      rgba(255,255,255,.045);
 
-  /* 幕布配色：低饱和度灰蓝色 */
-  --curtain-1:#3f4b5e;
-  --curtain-2:#333e4e;
-  --curtain-3:#262f3c;
+  /* 幕布配色：剧院帷幕蓝（顶部受光、底部沉下去） */
+  --curtain-1:#2f5da6;
+  --curtain-2:#1e3d76;
+  --curtain-3:#11254c;
 
   --radius:    20px;
   --radius-sm: 14px;
   --ease:      cubic-bezier(.22,1,.36,1);
 
-  /* 幕布拉开：1.2 秒、同步、柔和缓动（不是生硬直线运动） */
+  /* 幕布拉开：1.2 秒、左右同步，缓动像真帷幕——起步慢、随后加速、最后稳稳收住 */
   --curtain-time: 1.2s;
-  --curtain-ease: cubic-bezier(.7,0,.28,1);
+  --curtain-ease: cubic-bezier(.62,.04,.21,1);
 
   --font: "PingFang SC","Microsoft YaHei","Hiragino Sans GB","Source Han Sans SC",
           "Noto Sans SC","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
@@ -100,7 +100,7 @@ ul{padding:0;list-style:none}
 @keyframes shine{from{background-position:0% 50%}to{background-position:-200% 50%}}
 
 /* ==========================================================================
-   2. 开场幕布（左右两块灰蓝幕布，同步向两侧拉开）
+   2. 开场幕布（左右两块蓝色帷幕，同步向两侧收拢着拉开）
    ========================================================================== */
 .curtain{
   position:fixed;inset:0;z-index:200;
@@ -109,14 +109,24 @@ ul{padding:0;list-style:none}
 .panel{
   position:absolute;top:0;bottom:0;width:50.4%;   /* 略微重叠，避免中间出现缝 */
   backface-visibility:hidden;will-change:transform;
+  /* 布料的“锚点”在屏幕外侧边缘：拉开时朝外收拢，像真帷幕被拉到一边 */
+  transform-origin:left center;
   background:
-    repeating-linear-gradient(90deg,rgba(255,255,255,.028) 0 2px,transparent 2px 10px),
+    /* 竖向褶皱：亮部—暗部交替，做出布的立体感 */
+    repeating-linear-gradient(90deg,
+      rgba(255,255,255,.085) 0 3px,
+      rgba(0,0,0,.20) 3px 8px,
+      rgba(0,0,0,0) 8px 30px,
+      rgba(0,0,0,.24) 30px 39px,
+      rgba(255,255,255,.05) 39px 54px),
+    /* 顶部受光、底部沉下去 */
+    radial-gradient(130% 85% at 50% -6%,rgba(255,255,255,.13),transparent 62%),
     linear-gradient(180deg,var(--curtain-1) 0%,var(--curtain-2) 56%,var(--curtain-3) 100%);
-  box-shadow:0 0 60px rgba(0,0,0,.55) inset;
+  box-shadow:0 0 70px rgba(0,0,0,.5) inset;
   transition:transform var(--curtain-time) var(--curtain-ease); /* 柔和缓动、左右完全同步 */
 }
-.panel.left {left:0;  transform:translate3d(0,0,0)}
-.panel.right{right:0; transform:translate3d(0,0,0)}
+.panel.left {left:0;  transform:translate3d(0,0,0) scaleX(1)}
+.panel.right{right:0; transform-origin:right center; transform:translate3d(0,0,0) scaleX(1)}
 /* 幕布内侧的淡淡亮边，让“中缝”有设计感 */
 .panel.left::after,.panel.right::after{
   content:"";position:absolute;top:0;bottom:0;width:2px;
@@ -124,9 +134,10 @@ ul{padding:0;list-style:none}
 }
 .panel.left::after{right:0}
 .panel.right::after{left:0}
-/* 拉开状态：向左 / 向右滑出画面 */
-.curtain.open .panel.left {transform:translate3d(-101%,0,0)}
-.curtain.open .panel.right{transform:translate3d(101%,0,0)}
+/* 拉开状态：向左 / 向右“收拢着”移出画面（一边滑走一边聚拢，像真帷幕）
+   内侧边缘正好走完整段距离，结束时整块幕布刚好停在画面边缘之外 */
+.curtain.open .panel.left {transform:translate3d(-50%,0,0) scaleX(.5)}
+.curtain.open .panel.right{transform:translate3d(50%,0,0)  scaleX(.5)}
 /* 拉开结束：彻底移出并隐藏（不占用点击） */
 .curtain.done{visibility:hidden;pointer-events:none}
 
