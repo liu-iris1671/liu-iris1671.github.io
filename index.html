@@ -1,0 +1,1606 @@
+<!DOCTYPE html>
+<!-- 页面初始带 is-loading 类：用于“幕布开场动画”期间锁定滚动与交互 -->
+<html lang="zh-CN" class="is-loading">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#04091a">
+<meta name="description" content="刘玉娇的个人主页 —— 计算机专业大一学生，持续学习，动手创造，用代码实现小想法。">
+<title>刘玉娇 | 计算机专业 · 个人主页</title>
+
+<style>
+/* ==========================================================================
+   0. 设计变量（统一色板 / 圆角 / 动效节奏）
+   ========================================================================== */
+:root{
+  /* 深蓝星空底色 */
+  --bg:        #04091a;
+  --sky-1:     #12305e;
+  --sky-2:     #1b2a63;
+  --sky-3:     #0a2140;
+
+  --text:      #e9eefc;
+  --muted:     #98a5c4;
+  --muted-2:   #6d7899;
+
+  --cyan:      #5ee7ff;
+  --blue:      #6f9dff;
+  --violet:    #9a7bff;
+  --pink:      #ff7ad9;
+  --gold:      #ffd479;
+
+  --line:      rgba(255,255,255,.10);
+  --card:      rgba(255,255,255,.045);
+
+  /* 幕布配色：低饱和度灰蓝色 */
+  --curtain-1:#3f4b5e;
+  --curtain-2:#333e4e;
+  --curtain-3:#262f3c;
+
+  --radius:    20px;
+  --radius-sm: 14px;
+  --ease:      cubic-bezier(.22,1,.36,1);
+
+  /* 幕布拉开：1.2 秒、同步、柔和缓动（不是生硬直线运动） */
+  --curtain-time: 1.2s;
+  --curtain-ease: cubic-bezier(.7,0,.28,1);
+
+  --font: "PingFang SC","Microsoft YaHei","Hiragino Sans GB","Source Han Sans SC",
+          "Noto Sans SC","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+  --mono: "JetBrains Mono","Cascadia Code",Consolas,"SF Mono",Menlo,monospace;
+}
+
+/* ==========================================================================
+   1. 基础重置与排版
+   ========================================================================== */
+*,*::before,*::after{box-sizing:border-box}
+html{
+  scroll-behavior:smooth;              /* 平滑滚动 */
+  scroll-padding-top:82px;             /* 锚点跳转时避开固定导航 */
+  -webkit-text-size-adjust:100%;
+}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--font);
+  font-size:16px;
+  line-height:1.8;
+  letter-spacing:.01em;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+/* 开场动画期间：锁定页面滚动，禁用交互 */
+html.is-loading,html.is-loading body{overflow:hidden}
+html.is-loading main,html.is-loading .nav,html.is-loading .footer{pointer-events:none}
+
+img,svg{display:block;max-width:100%}
+a{color:inherit;text-decoration:none}
+h1,h2,h3,h4,p,ul{margin:0}
+ul{padding:0;list-style:none}
+::selection{background:rgba(154,123,255,.42);color:#fff}
+
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:#060b18}
+::-webkit-scrollbar-thumb{
+  background:linear-gradient(180deg,var(--blue),var(--violet),var(--pink));
+  border-radius:99px;border:2px solid #060b18;
+}
+
+.container{width:min(1140px,90vw);margin-inline:auto}
+
+/* 通用渐变色标题（流光效果） */
+.grad{
+  background:linear-gradient(100deg,#9fb4ff 0%,var(--cyan) 22%,#c9a5ff 48%,var(--pink) 72%,var(--gold) 100%);
+  background-size:200% 100%;
+  -webkit-background-clip:text;background-clip:text;
+  color:transparent;-webkit-text-fill-color:transparent;
+  animation:shine 9s linear infinite;
+}
+@keyframes shine{from{background-position:0% 50%}to{background-position:-200% 50%}}
+
+/* ==========================================================================
+   2. 开场幕布（左右两块灰蓝幕布，同步向两侧拉开）
+   ========================================================================== */
+.curtain{
+  position:fixed;inset:0;z-index:200;
+  overflow:hidden;
+}
+.panel{
+  position:absolute;top:0;bottom:0;width:50.4%;   /* 略微重叠，避免中间出现缝 */
+  backface-visibility:hidden;will-change:transform;
+  background:
+    repeating-linear-gradient(90deg,rgba(255,255,255,.028) 0 2px,transparent 2px 10px),
+    linear-gradient(180deg,var(--curtain-1) 0%,var(--curtain-2) 56%,var(--curtain-3) 100%);
+  box-shadow:0 0 60px rgba(0,0,0,.55) inset;
+  transition:transform var(--curtain-time) var(--curtain-ease); /* 柔和缓动、左右完全同步 */
+}
+.panel.left {left:0;  transform:translate3d(0,0,0)}
+.panel.right{right:0; transform:translate3d(0,0,0)}
+/* 幕布内侧的淡淡亮边，让“中缝”有设计感 */
+.panel.left::after,.panel.right::after{
+  content:"";position:absolute;top:0;bottom:0;width:2px;
+  background:linear-gradient(180deg,transparent,rgba(160,205,255,.55),transparent);
+}
+.panel.left::after{right:0}
+.panel.right::after{left:0}
+/* 拉开状态：向左 / 向右滑出画面 */
+.curtain.open .panel.left {transform:translate3d(-101%,0,0)}
+.curtain.open .panel.right{transform:translate3d(101%,0,0)}
+/* 拉开结束：彻底移出并隐藏（不占用点击） */
+.curtain.done{visibility:hidden;pointer-events:none}
+
+/* ==========================================================================
+   3. 动态背景：深蓝夜空 + 细碎星光 + 缓慢漂浮的光晕
+   ========================================================================== */
+.bg{
+  position:fixed;inset:0;z-index:0;overflow:hidden;
+  background:
+    radial-gradient(1200px 820px at 16% -10%,var(--sky-1) 0%,transparent 62%),
+    radial-gradient(1000px 760px at 106% 6%, var(--sky-2) 0%,transparent 58%),
+    radial-gradient(1100px 900px at 50% 118%,var(--sky-3) 0%,transparent 64%),
+    linear-gradient(180deg,#050d1f 0%,#03060f 62%,#050b18 100%);
+}
+/* 极光光晕：让深蓝背景有“梦幻”的呼吸感 */
+.aurora{
+  position:absolute;border-radius:50%;
+  filter:blur(100px);opacity:.34;mix-blend-mode:screen;
+  animation:drift 26s ease-in-out infinite alternate;
+}
+.aurora.a1{width:56vmax;height:56vmax;left:-18vmax;top:-20vmax;
+  background:radial-gradient(circle at 35% 35%,#2f6bff,transparent 66%)}
+.aurora.a2{width:48vmax;height:48vmax;right:-16vmax;top:4vmax;opacity:.28;
+  background:radial-gradient(circle at 60% 40%,#7a4dff,transparent 66%);
+  animation-delay:-8s}
+.aurora.a3{width:50vmax;height:50vmax;left:22vmax;bottom:-26vmax;opacity:.2;
+  background:radial-gradient(circle at 50% 50%,#12c2b0,transparent 66%);
+  animation-delay:-15s}
+@keyframes drift{
+  from{transform:translate3d(0,0,0) scale(1)}
+  to  {transform:translate3d(5vmax,4vmax,0) scale(1.16)}
+}
+/* 细碎星光：多层不同尺寸的点阵叠加，形成自然的星点分布 */
+.stars{
+  position:absolute;inset:-12%;
+  background-image:
+    radial-gradient(1.2px 1.2px at 20px 34px,  rgba(255,255,255,.95), transparent 100%),
+    radial-gradient(1px   1px   at 96px 150px, rgba(208,226,255,.8),  transparent 100%),
+    radial-gradient(1.6px 1.6px at 170px 62px, rgba(255,255,255,.9),  transparent 100%),
+    radial-gradient(.9px  .9px  at 250px 210px,rgba(190,215,255,.7),  transparent 100%);
+  background-size:190px 190px, 270px 270px, 430px 430px, 560px 560px;
+  background-position:0 0, 44px 96px, 130px 36px, 300px 160px;
+  animation:starBreath 9s ease-in-out infinite;
+}
+@keyframes starBreath{0%,100%{opacity:.62}50%{opacity:1}}
+/* 稍亮一点、慢慢飘的星层 */
+.stars.far{
+  background-image:
+    radial-gradient(1.8px 1.8px at 60px 90px,  rgba(255,255,255,.85), transparent 100%),
+    radial-gradient(1.4px 1.4px at 210px 40px, rgba(180,215,255,.8), transparent 100%);
+  background-size:340px 340px, 470px 470px;
+  background-position:20px 10px, 120px 220px;
+  animation:starDrift 140s linear infinite, starBreath 11s ease-in-out infinite;
+}
+@keyframes starDrift{to{background-position:360px 10px, -350px 220px}}
+.vignette{
+  position:absolute;inset:0;
+  background:radial-gradient(125% 100% at 50% 45%,transparent 50%,rgba(0,2,10,.78) 100%);
+}
+/* JS 生成的“闪亮小星星”容器 */
+.sparkles{position:fixed;inset:0;z-index:1;pointer-events:none}
+.spk{
+  position:absolute;width:7px;height:7px;
+  background:radial-gradient(circle,#fff 0%,rgba(160,205,255,.85) 55%,transparent 72%);
+  clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%);
+  animation:spkTwinkle 5s ease-in-out infinite;
+  opacity:.5;
+}
+@keyframes spkTwinkle{
+  0%,100%{opacity:.14;transform:scale(.7) rotate(0deg)}
+  50%    {opacity:.95;transform:scale(1.15) rotate(28deg)}
+}
+
+/* ==========================================================================
+   4. 自由飞翔的彩色蝴蝶（透明度 75% + 淡淡的拖尾）
+   --------------------------------------------------------------------------
+   每只蝴蝶由 3 层组成：主蝶 + 两个“淡影”层。
+   淡影使用相同的飞行轨迹、延迟若干秒出发，并降低透明度、缩小尺寸、加一点模糊，
+   于是主蝶身后就会跟着一条柔和的彩色拖尾（梦幻感）。
+   ========================================================================== */
+.bfly-zone{position:fixed;inset:0;z-index:2;pointer-events:none}
+
+.bfly{                                  /* 单个蝴蝶图层（跟随同一轨迹飞行） */
+  position:fixed;top:0;left:0;
+  width:var(--w,44px);height:var(--w,44px);
+  opacity:var(--op,.75);
+  filter:var(--flt,none);
+  pointer-events:none;will-change:transform;
+  animation-name:var(--path);
+  animation-duration:var(--dur);
+  animation-timing-function:linear;
+  animation-iteration-count:infinite;
+  animation-delay:calc(var(--base) + var(--off));
+  animation-fill-mode:both;              /* 延迟期间停在起点，避免突然闪现 */
+}
+/* 蝴蝶身后的柔光，增强“梦幻”的拖尾感 */
+.bfly::before{
+  content:"";position:absolute;inset:-50%;border-radius:50%;z-index:-1;
+  background:radial-gradient(circle,var(--glow,rgba(120,190,255,.30)),transparent 68%);
+  filter:blur(9px);
+}
+.bfly svg{width:100%;height:100%;overflow:visible;
+  filter:drop-shadow(0 0 10px rgba(150,205,255,.45))}
+/* 翅膀扇动：左右翅各以身体为轴来回缩放 */
+.bfly .wL,.bfly .wR{transform-box:fill-box;animation:flap .5s ease-in-out infinite alternate}
+.bfly .wL{transform-origin:right center}
+.bfly .wR{transform-origin:left center}
+@keyframes flap{from{transform:scaleX(1)}to{transform:scaleX(.42)}}
+
+/* 第 1 组：青蓝紫 */
+.g1{--path:fly1;--dur:44s;--base:-12s}
+.g1 .l1{--w:46px;--op:.75;--off:0s;   --glow:rgba(120,190,255,.32)}
+.g1 .l2{--w:36px;--op:.28;--off:1.4s; --flt:blur(1.6px)}
+.g1 .l3{--w:26px;--op:.13;--off:2.6s; --flt:blur(3.2px)}
+
+/* 第 2 组：暖金粉 */
+.g2{--path:fly2;--dur:58s;--base:-30s}
+.g2 .l1{--w:34px;--op:.75;--off:0s;   --glow:rgba(255,190,150,.28)}
+.g2 .l2{--w:26px;--op:.26;--off:1.6s; --flt:blur(1.8px)}
+.g2 .l3{--w:18px;--op:.12;--off:2.8s; --flt:blur(3.4px)}
+
+/* 第 3 组：薄荷青 */
+.g3{--path:fly3;--dur:50s;--base:-22s}
+.g3 .l1{--w:28px;--op:.75;--off:0s;   --glow:rgba(130,255,215,.26)}
+.g3 .l2{--w:21px;--op:.25;--off:1.3s; --flt:blur(1.6px)}
+.g3 .l3{--w:15px;--op:.12;--off:2.4s; --flt:blur(3px)}
+
+/* 第 4 组：紫罗兰 */
+.g4{--path:fly4;--dur:66s;--base:-44s}
+.g4 .l1{--w:38px;--op:.75;--off:0s;   --glow:rgba(190,150,255,.28)}
+.g4 .l2{--w:29px;--op:.26;--off:1.5s; --flt:blur(1.8px)}
+.g4 .l3{--w:20px;--op:.12;--off:2.7s; --flt:blur(3.4px)}
+
+/* 四条飞行轨迹：左右穿梭 + 上下起伏 + 轻微旋转，各自速度不同 */
+@keyframes fly1{
+  0%  {transform:translate3d(-10vw,74vh,0) rotate(-6deg) scale(.9)}
+  12% {transform:translate3d(8vw,58vh,0)   rotate(5deg)  scale(1)}
+  26% {transform:translate3d(26vw,45vh,0)  rotate(-3deg) scale(.94)}
+  40% {transform:translate3d(44vw,60vh,0)  rotate(8deg)  scale(1.06)}
+  56% {transform:translate3d(62vw,38vh,0)  rotate(-5deg) scale(.92)}
+  72% {transform:translate3d(80vw,54vh,0)  rotate(6deg)  scale(1.02)}
+  88% {transform:translate3d(98vw,34vh,0)  rotate(-4deg) scale(.96)}
+  100%{transform:translate3d(116vw,48vh,0) rotate(7deg)  scale(1)}
+}
+@keyframes fly2{
+  0%  {transform:translate3d(114vw,16vh,0) rotate(4deg)  scale(.95)}
+  18% {transform:translate3d(88vw,32vh,0)  rotate(-7deg) scale(1.05)}
+  36% {transform:translate3d(64vw,13vh,0)  rotate(6deg)  scale(.9)}
+  54% {transform:translate3d(42vw,36vh,0)  rotate(-4deg) scale(1.08)}
+  72% {transform:translate3d(20vw,15vh,0)  rotate(7deg)  scale(.94)}
+  100%{transform:translate3d(-14vw,30vh,0) rotate(-5deg) scale(1)}
+}
+@keyframes fly3{
+  0%  {transform:translate3d(-8vw,24vh,0)  rotate(9deg)  scale(.85)}
+  22% {transform:translate3d(22vw,11vh,0)  rotate(-9deg) scale(1.1)}
+  48% {transform:translate3d(52vw,31vh,0)  rotate(6deg)  scale(.9)}
+  74% {transform:translate3d(82vw,9vh,0)   rotate(-8deg) scale(1.05)}
+  100%{transform:translate3d(118vw,23vh,0) rotate(10deg) scale(.88)}
+}
+@keyframes fly4{
+  0%  {transform:translate3d(120vw,84vh,0) rotate(-8deg) scale(1)}
+  20% {transform:translate3d(94vw,66vh,0)  rotate(6deg)  scale(.92)}
+  44% {transform:translate3d(66vw,82vh,0)  rotate(-5deg) scale(1.06)}
+  68% {transform:translate3d(38vw,64vh,0)  rotate(9deg)  scale(.9)}
+  100%{transform:translate3d(-16vw,78vh,0) rotate(-6deg) scale(1)}
+}
+
+/* ==========================================================================
+   5. 边角星星（五种形态：四角星 / 五角星 / 菱形 / 八芒星 / 十字星）
+   ========================================================================== */
+.star-field{position:fixed;inset:0;z-index:3;pointer-events:none}
+.cluster{position:absolute;display:flex;align-items:center;gap:12px}
+.cluster.tl{top:96px;left:26px;flex-direction:column;align-items:flex-start}
+.cluster.tr{top:104px;right:28px;flex-direction:column;align-items:flex-end}
+.cluster.bl{bottom:34px;left:30px}
+.cluster.br{bottom:40px;right:32px;flex-direction:column;align-items:flex-end}
+.cluster .row{display:flex;align-items:center;gap:12px}
+
+.star{color:#9fd8ff;animation:twinkle 5.2s ease-in-out infinite;
+  filter:drop-shadow(0 0 8px currentColor)}
+.star svg{width:100%;height:100%;fill:currentColor}
+.s-xs{width:8px;height:8px}
+.s-sm{width:12px;height:12px}
+.s-md{width:18px;height:18px}
+.s-lg{width:26px;height:26px}
+.s-xl{width:36px;height:36px}
+.s-cyan{color:#9fd8ff}
+.s-violet{color:#b9a3ff}
+.s-pink{color:#ffa6e0}
+.s-gold{color:#ffd479}
+.s-teal{color:#8affd8}
+@keyframes twinkle{
+  0%,100%{opacity:.22;transform:scale(.78) rotate(0deg)}
+  45%    {opacity:.95;transform:scale(1.08) rotate(24deg)}
+  70%    {opacity:.55;transform:scale(.94) rotate(10deg)}
+}
+/* 右上角的“小行星”圆环 */
+.ring{
+  position:absolute;top:132px;right:52px;width:74px;height:74px;border-radius:50%;
+  border:1px solid rgba(255,255,255,.13);
+  animation:twinkle 9s ease-in-out infinite;
+}
+.ring::after{
+  content:"";position:absolute;width:6px;height:6px;border-radius:50%;
+  background:var(--cyan);box-shadow:0 0 12px var(--cyan);
+  top:-3px;left:50%;margin-left:-3px;
+  transform-origin:3px 40px;animation:orbit 12s linear infinite;
+}
+@keyframes orbit{to{transform:rotate(360deg)}}
+
+/* ==========================================================================
+   6. 顶部导航 + 滚动进度条
+   ========================================================================== */
+.progress{position:fixed;top:0;left:0;right:0;height:2px;z-index:60;background:rgba(255,255,255,.06)}
+.progress i{
+  display:block;height:100%;transform:scaleX(0);transform-origin:0 50%;
+  background:linear-gradient(90deg,var(--cyan),var(--violet),var(--pink),var(--gold));
+  box-shadow:0 0 12px rgba(154,123,255,.9);
+}
+.nav{
+  position:fixed;top:0;left:0;right:0;z-index:50;
+  backdrop-filter:blur(14px) saturate(140%);
+  -webkit-backdrop-filter:blur(14px) saturate(140%);
+  background:linear-gradient(180deg,rgba(6,12,26,.84),rgba(6,12,26,.42));
+  border-bottom:1px solid var(--line);
+  opacity:0;                                   /* 开场结束后淡入 */
+  transition:opacity .6s var(--ease);
+}
+html:not(.is-loading) .nav{opacity:1}
+.nav-in{
+  width:min(1140px,90vw);margin-inline:auto;height:64px;
+  display:flex;align-items:center;justify-content:space-between;gap:14px;
+}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.02em}
+.brand .dot{
+  width:11px;height:11px;border-radius:50%;
+  background:linear-gradient(135deg,var(--cyan),var(--violet),var(--pink));
+  box-shadow:0 0 14px rgba(154,123,255,.9);
+  animation:pulse 2.6s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.35);opacity:.72}}
+.brand small{color:var(--muted-2);font-weight:500;font-size:12px;letter-spacing:.14em}
+
+.nav-links{display:flex;align-items:center;gap:6px}
+.nav-link{
+  position:relative;padding:8px 13px;border-radius:99px;font-size:14px;
+  color:var(--muted);transition:color .3s var(--ease);
+}
+.nav-link::after{                              /* 鼠标悬浮高亮：底部流光 */
+  content:"";position:absolute;left:13px;right:13px;bottom:4px;height:1.5px;border-radius:2px;
+  background:linear-gradient(90deg,var(--cyan),var(--pink));
+  transform:scaleX(0);transform-origin:0 50%;
+  transition:transform .38s var(--ease);box-shadow:0 0 10px rgba(94,231,255,.8);
+}
+.nav-link:hover,.nav-link.active{color:#fff}
+.nav-link:hover::after,.nav-link.active::after{transform:scaleX(1)}
+
+/* ==========================================================================
+   7. 首屏 Hero（头像 + 姓名 + 专业 + slogan + 向下指引箭头）
+   ========================================================================== */
+.hero{
+  position:relative;min-height:100vh;min-height:100svh;
+  display:flex;flex-direction:column;justify-content:center;align-items:center;
+  text-align:center;
+  /* 底部留出足够空间，保证“向下指引箭头”不会压到内容 */
+  padding:112px 0 172px;
+}
+/* 开场：幕布拉开时内容“慢慢露出”，随后再轻微淡入提亮 */
+.hero-in{
+  position:relative;z-index:2;
+  display:flex;flex-direction:column;align-items:center;
+  opacity:0;
+  filter:blur(12px) brightness(.5);
+  transform:translateY(10px) scale(.99);
+  transition:opacity 1.05s var(--ease),filter 1.05s var(--ease),transform 1.05s var(--ease);
+}
+.hero-in.peek{opacity:.62;filter:blur(3px) brightness(.86);transform:translateY(0) scale(1)}
+.hero-in.lit{                                   /* 幕布完全移走后：淡入提亮 */
+  opacity:1;filter:blur(0) brightness(1);
+  transition-duration:.6s;
+}
+.hero-glow{
+  position:absolute;width:min(780px,88vw);aspect-ratio:1;border-radius:50%;
+  background:radial-gradient(circle,rgba(111,157,255,.20),rgba(154,123,255,.12) 42%,transparent 70%);
+  filter:blur(34px);animation:breathe 8s ease-in-out infinite;pointer-events:none;
+}
+@keyframes breathe{0%,100%{transform:scale(1);opacity:.85}50%{transform:scale(1.12);opacity:1}}
+
+/* —— 猫头像 —— */
+.avatar{
+  position:relative;
+  width:clamp(112px,25vw,156px);height:clamp(112px,25vw,156px);
+  border-radius:50%;display:grid;place-items:center;
+  background:radial-gradient(circle at 50% 30%,rgba(120,175,255,.20),rgba(10,20,45,.6) 70%);
+  border:1px solid rgba(255,255,255,.14);
+  box-shadow:0 20px 60px rgba(0,0,0,.55),0 0 60px rgba(94,231,255,.12) inset;
+}
+.avatar::before{                                /* 外圈缓慢旋转的彩色光环 */
+  content:"";position:absolute;inset:-6px;border-radius:50%;
+  background:conic-gradient(from 0deg,var(--cyan),var(--violet),var(--pink),var(--gold),var(--cyan));
+  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 3px),#000 calc(100% - 3px));
+          mask:radial-gradient(farthest-side,transparent calc(100% - 3px),#000 calc(100% - 3px));
+  opacity:.85;animation:spin 9s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* 头像图片：铺满圆形并居中裁切 */
+.avatar-img{
+  width:100%;height:100%;border-radius:50%;
+  object-fit:cover;object-position:50% 42%;
+  box-shadow:0 0 40px rgba(94,231,255,.18) inset;
+}
+
+/* —— 姓名 —— */
+.hero-name{
+  margin:24px 0 4px;
+  font-size:clamp(2.1rem,6.2vw,3.4rem);
+  font-weight:800;line-height:1.1;letter-spacing:.08em;
+}
+.hero-role{
+  display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:10px;
+  font-size:clamp(.9rem,2.6vw,1.05rem);color:var(--muted);letter-spacing:.16em;
+}
+.hero-role .sep{width:4px;height:4px;border-radius:50%;background:var(--muted-2)}
+.hero-slogan{
+  margin-top:20px;font-family:var(--mono);
+  font-size:clamp(.95rem,3.3vw,1.28rem);letter-spacing:.06em;color:#dbe4ff;
+}
+.hero-slogan em{
+  font-style:normal;
+  border-bottom:1px dashed rgba(154,123,255,.55);
+  padding-bottom:1px;
+}
+
+.hero-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:14px;margin-top:34px}
+.btn{
+  display:inline-flex;align-items:center;gap:9px;
+  padding:13px 26px;border-radius:99px;font-size:15px;font-weight:600;
+  transition:transform .4s var(--ease),box-shadow .4s var(--ease),border-color .4s var(--ease);
+}
+.btn-primary{
+  color:#04101f;
+  background:linear-gradient(100deg,var(--cyan),#a58bff 52%,var(--pink));
+  box-shadow:0 12px 34px rgba(111,157,255,.35);
+}
+.btn-primary:hover{transform:translateY(-4px);box-shadow:0 20px 46px rgba(154,123,255,.55)}
+.btn-ghost{
+  color:#e6ebff;border:1px solid var(--line);background:rgba(255,255,255,.03);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+}
+.btn-ghost:hover{transform:translateY(-4px);border-color:rgba(154,123,255,.6);box-shadow:0 16px 40px rgba(0,0,0,.6)}
+
+/* 首屏信息条（真实、不夸张的三条状态） */
+.hero-facts{
+  display:flex;flex-wrap:wrap;justify-content:center;gap:clamp(16px,4vw,46px);
+  margin-top:46px;padding-top:24px;border-top:1px solid var(--line);
+  width:min(660px,88vw);
+}
+.fact{text-align:center;min-width:96px}
+.fact b{display:block;font-size:clamp(1rem,3.4vw,1.22rem);font-weight:700;letter-spacing:.02em}
+.fact span{font-size:12.5px;color:var(--muted-2);letter-spacing:.1em}
+
+/* 向下指引箭头 */
+.scroll-cue{
+  position:absolute;left:50%;bottom:26px;transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  color:var(--muted-2);font-size:11px;letter-spacing:.28em;
+  transition:color .35s var(--ease);
+}
+.scroll-cue:hover{color:var(--cyan)}
+.scroll-cue .line{
+  position:relative;width:1.5px;height:52px;overflow:hidden;
+  background:linear-gradient(180deg,rgba(255,255,255,.22),transparent);
+}
+.scroll-cue .line::after{
+  content:"";position:absolute;left:0;top:-45%;width:100%;height:45%;
+  background:linear-gradient(180deg,transparent,var(--cyan),transparent);
+  animation:drop 1.9s ease-in-out infinite;
+}
+@keyframes drop{0%{top:-45%}100%{top:105%}}
+.scroll-cue .chev{
+  width:12px;height:12px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;
+  transform:rotate(45deg);animation:bob 1.9s ease-in-out infinite;
+}
+@keyframes bob{0%,100%{transform:rotate(45deg) translate(0,0)}50%{transform:rotate(45deg) translate(4px,4px)}}
+
+/* ==========================================================================
+   8. 区块通用样式 / 动态分割线
+   ========================================================================== */
+.section{padding:clamp(72px,10vw,132px) 0;position:relative}
+.sec-head{max-width:780px;margin-bottom:clamp(34px,5vw,58px)}
+.sec-tag{
+  display:inline-block;font-family:var(--mono);font-size:12px;letter-spacing:.22em;
+  color:var(--muted-2);padding:5px 12px;border:1px solid var(--line);border-radius:99px;
+  background:rgba(255,255,255,.02);
+}
+.sec-title{margin:18px 0 12px;font-size:clamp(1.75rem,5.4vw,2.85rem);
+  font-weight:800;letter-spacing:.03em;line-height:1.25}
+.sec-sub{color:var(--muted);font-size:clamp(.95rem,2.8vw,1.02rem);max-width:66ch}
+
+.divider{display:flex;align-items:center;gap:16px;width:min(1140px,90vw);margin:0 auto;height:22px}
+.divider .seg{
+  position:relative;flex:1;height:1px;overflow:hidden;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.16),transparent);
+}
+.divider .seg::after{
+  content:"";position:absolute;top:0;left:-45%;width:45%;height:100%;
+  background:linear-gradient(90deg,transparent,var(--cyan),transparent);
+  animation:slide 5s ease-in-out infinite;
+}
+.divider .seg.rev::after{animation-delay:-2.5s;
+  background:linear-gradient(90deg,transparent,var(--pink),transparent)}
+@keyframes slide{0%{left:-45%}100%{left:105%}}
+.divider .node{width:14px;height:14px;color:var(--gold);flex:0 0 auto;
+  animation:twinkle 4.4s ease-in-out infinite}
+.divider .node svg{width:100%;height:100%;fill:currentColor}
+
+/* ==========================================================================
+   9. 卡片：悬浮上浮 + 阴影 + 鼠标跟随高亮
+   ========================================================================== */
+.grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
+.grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
+.span-2{grid-column:span 2}
+
+.reveal{opacity:0;transform:translateY(28px);
+  transition:opacity .8s var(--ease),transform .8s var(--ease)}
+.reveal.in{opacity:1;transform:none}
+
+.card{
+  position:relative;height:100%;overflow:hidden;
+  padding:clamp(22px,3vw,32px);
+  border:1px solid var(--line);border-radius:var(--radius);
+  background:linear-gradient(160deg,rgba(255,255,255,.062),rgba(255,255,255,.022));
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  box-shadow:0 8px 26px rgba(0,0,0,.34);
+  transition:transform .5s var(--ease),box-shadow .5s var(--ease),
+             border-color .5s var(--ease),background .5s var(--ease);
+}
+.card:hover{
+  transform:translateY(-10px);
+  box-shadow:0 30px 70px rgba(0,0,0,.68),0 0 0 1px rgba(154,123,255,.16);
+  border-color:rgba(154,123,255,.45);
+  background:linear-gradient(160deg,rgba(255,255,255,.088),rgba(255,255,255,.03));
+}
+.card::before{                       /* 跟随鼠标的柔光（--mx/--my 由 JS 写入） */
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:radial-gradient(340px circle at var(--mx,50%) var(--my,0%),
+             rgba(120,175,255,.17),transparent 62%);
+  opacity:0;transition:opacity .4s var(--ease);
+}
+.card:hover::before{opacity:1}
+.card::after{                        /* 悬浮时显现的渐变描边 */
+  content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;
+  background:linear-gradient(135deg,rgba(94,231,255,.75),rgba(154,123,255,.6),rgba(255,122,217,.55),rgba(255,212,121,.5));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+  opacity:0;transition:opacity .45s var(--ease);
+}
+.card:hover::after{opacity:1}
+
+.card h3{font-size:1.12rem;font-weight:700;letter-spacing:.02em}
+.card .desc{color:var(--muted);font-size:.95rem;margin-top:12px}
+.card .kicker{font-family:var(--mono);font-size:11.5px;letter-spacing:.18em;color:var(--muted-2)}
+
+.head-row{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+.chip{
+  width:36px;height:36px;flex:0 0 auto;border-radius:11px;display:grid;place-items:center;
+  color:var(--c,var(--cyan));
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(255,255,255,.05);
+}
+.chip svg{width:19px;height:19px;color:var(--c,var(--cyan))}
+
+/* ==========================================================================
+   10. 关于我
+   ========================================================================== */
+.quote{
+  border-left:2px solid transparent;
+  border-image:linear-gradient(180deg,var(--cyan),var(--violet),var(--pink)) 1;
+  padding:6px 0 6px 20px;margin-bottom:34px;
+  color:#ccd6f2;font-size:clamp(.98rem,2.9vw,1.08rem);line-height:1.95;
+}
+.quote b{color:#fff}
+
+.goals{margin-top:20px;display:grid;gap:14px}
+.goals li{
+  display:flex;gap:12px;align-items:flex-start;
+  padding:14px 16px;border-radius:var(--radius-sm);
+  border:1px solid var(--line);background:rgba(255,255,255,.025);
+  color:var(--muted);font-size:.94rem;
+  transition:transform .4s var(--ease),border-color .4s var(--ease),color .4s var(--ease);
+}
+.goals li:hover{transform:translateX(6px);border-color:rgba(94,231,255,.45);color:#e8eeff}
+.goals .idx{
+  flex:0 0 auto;width:24px;height:24px;border-radius:8px;display:grid;place-items:center;
+  font-family:var(--mono);font-size:12px;font-weight:700;color:#04101f;
+  background:linear-gradient(135deg,var(--cyan),var(--violet));margin-top:2px;
+}
+
+/* ==========================================================================
+   11. 技能卡片（当前主攻：C 语言）
+   ========================================================================== */
+.skill{display:flex;flex-direction:column;gap:12px}
+.skill-top{display:flex;align-items:center;gap:13px}
+.skill-top h3{font-size:1.05rem}
+.skill-top .sub{font-size:12.5px;color:var(--muted-2);letter-spacing:.04em}
+.bar{height:6px;border-radius:99px;overflow:hidden;background:rgba(255,255,255,.08);position:relative}
+.bar i{
+  display:block;height:100%;width:0;border-radius:99px;
+  background:linear-gradient(90deg,var(--c,var(--cyan)),#c58bff);
+  box-shadow:0 0 14px rgba(154,123,255,.6);
+  transition:width 1.6s var(--ease) .2s;
+}
+.reveal.in .bar i{width:var(--w,60%)}
+.bar-meta{display:flex;justify-content:space-between;align-items:center;
+  margin-top:9px;font-size:12.5px;color:var(--muted-2)}
+.bar-meta b{font-family:var(--mono);color:var(--c,var(--cyan));font-size:13px}
+.tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.tag{
+  font-size:12px;padding:5px 11px;border-radius:99px;
+  border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--muted);
+  transition:all .35s var(--ease);
+}
+.card:hover .tag{border-color:rgba(255,255,255,.2);color:#dbe3f8}
+
+/* C 语言主卡里的四项技能小进度 */
+.sub-bars{display:grid;gap:16px;margin-top:18px}
+.sub-bar .label{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:7px}
+.sub-bar .label b{font-family:var(--mono);color:#cfe0ff;font-weight:600}
+
+/* ==========================================================================
+   12. 项目展示（空状态 + 路线图）
+   ========================================================================== */
+.empty{
+  border-style:dashed;border-color:rgba(255,255,255,.18);
+  text-align:center;padding:clamp(34px,6vw,60px) clamp(22px,4vw,54px);
+}
+.empty .icon{
+  width:76px;height:76px;margin:0 auto 20px;border-radius:22px;display:grid;place-items:center;
+  border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);
+  color:var(--cyan);animation:floatY 5s ease-in-out infinite;
+}
+.empty .icon svg{width:38px;height:38px}
+@keyframes floatY{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+.empty h3{font-size:clamp(1.15rem,3.4vw,1.4rem)}
+.empty p{color:var(--muted);font-size:.96rem;max-width:62ch;margin:14px auto 0}
+.empty .stamp{
+  display:inline-block;margin-bottom:16px;font-family:var(--mono);font-size:11.5px;
+  letter-spacing:.2em;color:var(--muted-2);padding:5px 12px;border-radius:99px;
+  border:1px solid var(--line);background:rgba(255,255,255,.02);
+}
+/* 路线图 */
+.roadmap{display:grid;gap:14px;margin-top:34px;text-align:left}
+.step{
+  position:relative;display:flex;align-items:flex-start;gap:16px;
+  padding:16px 18px;border-radius:var(--radius-sm);
+  border:1px solid var(--line);background:rgba(255,255,255,.026);
+  transition:transform .4s var(--ease),border-color .4s var(--ease),background .4s var(--ease);
+}
+.step:hover{transform:translateX(6px);border-color:rgba(154,123,255,.45);background:rgba(255,255,255,.05)}
+.step .no{
+  flex:0 0 auto;width:30px;height:30px;border-radius:10px;display:grid;place-items:center;
+  font-family:var(--mono);font-size:12.5px;font-weight:700;color:#04101f;
+  background:linear-gradient(135deg,var(--cyan),var(--violet));
+}
+.step .txt{flex:1 1 auto}
+.step .txt b{display:block;font-size:.98rem;font-weight:600;color:#e6ecff}
+.step .txt span{font-size:.9rem;color:var(--muted)}
+.step .state{
+  flex:0 0 auto;align-self:center;font-size:11.5px;padding:4px 11px;border-radius:99px;
+  letter-spacing:.06em;white-space:nowrap;
+  color:#8affd1;border:1px solid rgba(138,255,209,.34);background:rgba(138,255,209,.08);
+}
+.step .state.plan{color:var(--gold);border-color:rgba(255,212,121,.34);background:rgba(255,212,121,.08)}
+.step .state.long{color:#b9a3ff;border-color:rgba(185,163,255,.34);background:rgba(185,163,255,.08)}
+
+.note{
+  margin-top:22px;padding:14px 18px;border-radius:var(--radius-sm);
+  border:1px dashed rgba(255,255,255,.16);background:rgba(255,255,255,.02);
+  font-size:.9rem;color:var(--muted);text-align:left;
+}
+.note b{color:#e9eeff}
+
+/* ==========================================================================
+   13. 页脚
+   ========================================================================== */
+.footer{
+  position:relative;margin-top:20px;border-top:1px solid var(--line);
+  background:linear-gradient(180deg,rgba(255,255,255,.03),transparent 40%);
+}
+.footer::before{
+  content:"";position:absolute;top:-1px;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--cyan),var(--violet),var(--pink),transparent);
+  opacity:.75;
+}
+.footer-in{
+  width:min(1140px,90vw);margin-inline:auto;
+  padding:clamp(46px,6vw,72px) 0 28px;
+  display:grid;grid-template-columns:1fr;          /* 单列居中 */
+  justify-items:center;text-align:center;gap:14px;
+}
+.footer p{color:var(--muted);font-size:.9rem}
+.footer .brand-line{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.footer .brand-line b{font-size:1.15rem;letter-spacing:.06em}
+.footer-bottom{
+  border-top:1px solid var(--line);padding:20px 0 30px;text-align:center;
+  font-size:12.5px;color:var(--muted-2);letter-spacing:.03em;
+}
+.footer-bottom .mono{font-family:var(--mono)}
+.signature{font-family:var(--mono);letter-spacing:.3em;color:var(--muted-2);font-size:12px;margin-bottom:16px}
+
+.to-top{
+  position:fixed;right:22px;bottom:22px;z-index:55;
+  width:46px;height:46px;border-radius:50%;border:1px solid var(--line);
+  background:rgba(8,14,28,.78);color:#dfe7ff;cursor:pointer;
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  display:grid;place-items:center;
+  opacity:0;transform:translateY(16px) scale(.9);pointer-events:none;
+  transition:all .45s var(--ease);
+}
+.to-top.show{opacity:1;transform:none;pointer-events:auto}
+.to-top:hover{border-color:rgba(154,123,255,.7);box-shadow:0 0 26px rgba(154,123,255,.5);transform:translateY(-4px)}
+.to-top svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round}
+
+/* 隐藏的渐变定义容器（供所有蝴蝶 SVG 共用） */
+.svg-defs{position:absolute;width:0;height:0;overflow:hidden}
+
+/* ==========================================================================
+   14. 响应式适配（电脑 / 平板 / 手机）
+   ========================================================================== */
+@media (max-width:1000px){
+  .grid-3{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:760px){
+  body{font-size:15.5px}
+  .grid-2,.grid-3{grid-template-columns:1fr}
+  .span-2{grid-column:auto}
+  .nav-link{padding:7px 10px;font-size:13px}
+  .brand small{display:none}
+  /* 小屏幕减少蝴蝶图层与角饰，保证流畅、不与文字打架 */
+  .g3,.g4{display:none}
+  .bfly .l3{display:none}
+  .cluster.bl,.cluster.br{display:none}
+  .ring{display:none}
+  .cluster.tl{top:80px;left:14px}
+  .cluster.tr{top:86px;right:14px}
+  .hero{padding-top:100px}
+  .hero-facts{gap:18px;margin-top:36px}
+  .scroll-cue{bottom:14px}
+  .scroll-cue .line{height:36px}
+  .to-top{right:14px;bottom:14px;width:42px;height:42px}
+  .step{flex-wrap:wrap}
+  .step .state{margin-left:46px}
+}
+@media (max-width:420px){
+  .bfly .l2{display:none}
+  .card{padding:20px}
+}
+/* 屏幕较矮（笔记本小窗口 / 横屏手机）时压缩首屏高度，避免内容被挤压 */
+@media (max-height:820px) and (min-width:761px){
+  .hero{padding:92px 0 150px}
+  .avatar{width:clamp(104px,18vw,128px);height:clamp(104px,18vw,128px)}
+  .hero-name{font-size:clamp(1.9rem,5.2vw,2.9rem);margin-top:16px}
+  .hero-slogan{margin-top:14px}
+  .hero-actions{margin-top:26px}
+  .hero-facts{margin-top:30px;padding-top:18px}
+  .scroll-cue{bottom:18px}
+  .scroll-cue .line{height:40px}
+}
+@media (max-height:700px){
+  .scroll-cue{display:none}          /* 极矮窗口下隐藏指引箭头，优先保证内容完整 */
+  .hero{padding-bottom:120px}
+}
+
+/* 尊重系统“减少动态效果”设置 */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.001ms !important;animation-iteration-count:1 !important;
+    transition-duration:.001ms !important;scroll-behavior:auto !important;
+  }
+  .reveal{opacity:1;transform:none}
+  .reveal.in .bar i{width:var(--w,60%)}
+  .hero-in{opacity:1;filter:none;transform:none}
+}
+</style>
+
+<!-- 无脚本时：直接跳过幕布，正常显示页面 -->
+<noscript>
+  <style>
+    .curtain{display:none !important}
+    html,html body{overflow:auto !important}
+    .hero-in{opacity:1 !important;filter:none !important;transform:none !important}
+    .nav{opacity:1 !important}
+  </style>
+</noscript>
+</head>
+
+<body class="is-loading">
+
+<!-- ==========================================================
+     开场幕布：左右两块低饱和灰蓝幕布，1.2s 同步向两侧拉开
+     ========================================================== -->
+<div class="curtain" id="curtain" aria-hidden="true">
+  <div class="panel left"></div>
+  <div class="panel right"></div>
+</div>
+
+<!-- ==========================================================
+     动态背景：深蓝夜空 + 细碎星光 + 缓慢漂浮的光晕
+     ========================================================== -->
+<div class="bg" aria-hidden="true">
+  <span class="aurora a1"></span>
+  <span class="aurora a2"></span>
+  <span class="aurora a3"></span>
+  <span class="stars"></span>
+  <span class="stars far"></span>
+  <span class="vignette"></span>
+</div>
+
+<!-- JS 生成的闪亮小星星 -->
+<div class="sparkles" id="sparkles" aria-hidden="true"></div>
+
+<!-- ==========================================================
+     渐变色定义：所有蝴蝶 SVG 共用（放在文档里定义一次即可）
+     ========================================================== -->
+<svg class="svg-defs" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="wg1a" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7af0ff"/><stop offset="55%" stop-color="#5b8cff"/><stop offset="100%" stop-color="#c07bff"/>
+    </linearGradient>
+    <linearGradient id="wg1b" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#c07bff"/><stop offset="50%" stop-color="#5b8cff"/><stop offset="100%" stop-color="#7af0ff"/>
+    </linearGradient>
+    <linearGradient id="wg2a" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffd479"/><stop offset="55%" stop-color="#ff9ad4"/><stop offset="100%" stop-color="#ff7a9c"/>
+    </linearGradient>
+    <linearGradient id="wg2b" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ff7a9c"/><stop offset="50%" stop-color="#ff9ad4"/><stop offset="100%" stop-color="#ffd479"/>
+    </linearGradient>
+    <linearGradient id="wg3a" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#8affd1"/><stop offset="55%" stop-color="#5ee7ff"/><stop offset="100%" stop-color="#7b9dff"/>
+    </linearGradient>
+    <linearGradient id="wg3b" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7b9dff"/><stop offset="50%" stop-color="#5ee7ff"/><stop offset="100%" stop-color="#8affd1"/>
+    </linearGradient>
+    <linearGradient id="wg4a" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#e6a8ff"/><stop offset="55%" stop-color="#9a7bff"/><stop offset="100%" stop-color="#6f9dff"/>
+    </linearGradient>
+    <linearGradient id="wg4b" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#6f9dff"/><stop offset="50%" stop-color="#9a7bff"/><stop offset="100%" stop-color="#e6a8ff"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<!-- ==========================================================
+     四只自由飞翔的彩色蝴蝶（每组 3 层 = 主蝶 + 2 个淡影 → 梦幻拖尾）
+     图层顺序：拖尾(l3) → 次影(l2) → 主蝶(l1)，主蝶始终在最上面
+     ========================================================== -->
+<div class="bfly-zone" aria-hidden="true">
+
+  <!-- 第 1 组：青蓝紫 -->
+  <div class="g1">
+    <div class="bfly l3"><svg viewBox="0 0 120 120"><g class="wL"><path fill="url(#wg1a)" d="M60 56C52 34 36 12 20 14 6 16 8 40 26 52 38 60 52 60 60 56Z"/><path fill="url(#wg1b)" opacity=".92" d="M60 60C50 66 32 72 22 82 14 90 22 104 38 98 50 93 58 76 60 60Z"/></g><g class="wR"><path fill="url(#wg1a)" d="M60 56C68 34 84 12 100 14 114 16 112 40 94 52 82 60 68 60 60 56Z"/><path fill="url(#wg1b)" opacity=".92" d="M60 60C70 66 88 72 98 82 106 90 98 104 82 98 70 93 62 76 60 60Z"/></g><ellipse cx="60" cy="62" rx="2.6" ry="16" fill="#eef5ff"/><circle cx="60" cy="45" r="3.2" fill="#fff"/><path d="M60 43C56 34 51 30 45 27M60 43C64 34 69 30 75 27" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg></div>
+    <div class="bfly l2"><svg viewBox="0 0 120 120"><g class="wL"><path fill="url(#wg1a)" d="M60 56C52 34 36 12 20 14 6 16 8 40 26 52 38 60 52 60 60 56Z"/><path fill="url(#wg1b)" opacity=".92" d="M60 60C50 66 32 72 22 82 14 90 22 104 38 98 50 93 58 76 60 60Z"/></g><g class="wR"><path fill="url(#wg1a)" d="M60 56C68 34 84 12 100 14 114 16 112 40 94 52 82 60 68 60 60 56Z"/><path fill="url(#wg1b)" opacity=".92" d="M60 60C70 66 88 72 98 82 106 90 98 104 82 98 70 93 62 76 60 60Z"/></g><ellipse cx="60" cy="62" rx="2.6" ry="16" fill="#eef5ff"/><circle cx="60" cy="45" r="3.2" fill="#fff"/><path d="M60 43C56 34 51 30 45 27M60 43C64 34 69 30 75 27" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg></div>
+    <div class="bfly l1"><svg viewBox="0 0 120 120"><g class="wL"><path fill="url(#wg1a)" d="M60 56C52 34 36 12 20 14 6 16 8 40 26 52 38 60 52 60 60 56Z"/><path fill="url(#wg1b)" opacity=".92" d="M60 60C50 66 32 72 22 82 14 90 22 104 38 98 50 93 58 76 60 60Z"/></g><g class="wR"><path fill="url(#wg1a)" d="M60 56C68 34 84 12 100 14 114 16 112 40 94 52 82 60 68 60 60 56Z"/><path fill="url(#wg1b)" opacity=".92" d="M60 60C70 66 88 72 98 82 106 90 98 104 82 98 70 93 62 76 60 60Z"/></g><ellipse cx="60" cy="62" rx="2.6" ry="16" fill="#eef5ff"/><circle cx="60" cy="45" r="3.2" fill="#fff"/><path d="M60 43C56 34 51 30 45 27M60 43C64 34 69 30 75 27" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg></div>
+  </div>
+
+  <!-- 第 2 组：暖金粉 -->
+  <div class="g2">
+    <div class="bfly l3"><svg viewBox="0 0 120 120"><g class="wL"><path fill="url(#wg2a)" d="M60 56C52 34 36 12 20 14 6 16 8 40 26 52 38 60 52 60 60 56Z"/><path fill="url(#wg2b)" opacity=".92" d="M60 60C50 66 32 72 22 82 14 90 22 104 38 98 50 93 58 76 60 60Z"/></g><g class="wR"><path fill="url(#wg2a)" d="M60 56C68 34 84 12 100 14 114 16 112 40 94 52 82 60 68 60 60 56Z"/><path fill="url(#wg2b)" opacity=".92" d="M60 60C70 66 88 72 98 82 106 90 98 104 82 98 70 93 62 76 60 60Z"/></g><ellipse cx="60" cy="62" rx="2.6" ry="16" fill="#fff5e8"/><circle cx="60" cy="45" r="3.2" fill="#fff"/><path d="M60 43C56 34 51 30 45 27M60 43C64 34 69 30 75 27" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg></div>
+    <div class="bfly l2"><svg viewBox="0 0 120 120"><g class="wL"><path fill="url(#wg2a)" d="M60 56C52 34 36 12 20 14 6 16 8 40 26 52 38 60 52 60 60 56Z"/><path fill="url(#wg2b)" opacity=".92" d="M60 60C50 66 32 72 22 82 14 90 22 104 38 98 50 93 58 76 60 60Z"/></g><g class="wR"><path fill="url(#wg2a)" d="M60 56C68 34 84 12 100 14 114 16 112 40 94 52 82 60 68 60 60 56Z"/><path fill="url(#wg2b)" opacity=".92" d="M60 60C70 66 88 72 98 82 106 90 98 104 82 98 70 93 62 76 60 60Z"/></g><ellipse cx="60" cy="62" rx="2.6" ry="16" fill="#fff5e8"/><circle cx="60" cy="45" r="3.2" fill="#fff"/><path d="M60 43C56 34 51 30 45 27M60 43C64 34 69 30 75 27" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg></div>
+    <div class="bfly l1"><svg viewBox="0 0 120 120"><g class="wL"><path fill="url(#wg2a)" d="M60 56C52 34 36 12 20 14 6 16 8 40 26 52 38 60 52 60 60 56Z"/><path fill="url(#wg2b)" opacity=".92" d="M60 60C50 66 32 72 22 82 14 90 22 104 38 98 50 93 58 76 60 60Z"/></g><g class="wR"><path fill="url(#wg2a)" d="M60 56C68 34 84 12 100 14 114 16 112 40 94 52 82 60 68 60 60 56Z"/><path fill="url(#wg2b)" opacity=".92" d="M60 60C70 66 88 72 98 82 106 90 98 104 82 98 70 93 62 76 60 60Z"/></g><ellipse cx="60" cy="62" rx="2.6" ry="16" fill="#fff5e8"/><circle cx="60" cy="45" r="3.2" fill="#fff"/><path d="M60 43C56 34 51 30 45 27M60 43C64 34 69 30 75 27" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg></div>
+  </div>
+
+  <!-- 第 3 组：薄荷青 -->
+  <div class="g3">
+    <div class="bfly l3"><svg viewBox="0 0 120 120"><g class="wL"><path fill="url(#wg3a)" d="M60 56C52 34 36 12 20 14 6 16 8 40 26 52 38 60 52 60 60 56Z"/><path fill="url(#wg3b)" opacity=".92" d="M60 60C50 66 32 72 22 82 14 90 22 104 38 98 50 93 58 76 60 60Z"/></g><g class="wR"><path fill="url(#wg3a)" d="M60 56C68 34 84 12 100 14 114 16 112 40 94 52 82 60 68 60 60 56Z"/><path fill="url(#wg3b)" opacity=".92" d="M60 60C70 66 88 72 98 82 106 90 98 104 82 98 70 93 62 76 60 60Z"/></g><ellipse cx="60" cy="62" rx="2.6" ry="16" fill="#eafff8"/><circle cx="60" cy="45" r="3.2" fill="#fff"/><path d="M60 43C56 34 51 30 45 27M60 43C64 34 69 30 75 27" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg></div>
+    <div class="bfly l2"><svg viewBox="0 0 120 120"><g class="wL"><path fill="url(#wg3a)" d="M60 56C52 34 36 12 20 14 6 16 8 40 26 52 38 60 52 60 60 56Z"/><path fill="url(#wg3b)" opacity=".92" d="M60 60C50 66 32 72 22 82 14 90 22 104 38 98 50 93 58 76 60 60Z"/></g><g class="wR"><path fill="url(#wg3a)" d="M60 56C68 34 84 12 100 14 114 16 112 40 94 52 82 60 68 60 60 56Z"/><path fill="url(#wg3b)" opacity=".92" d="M60 60C70 66 88 72 98 82 106 90 98 104 82 98 70 93 62 76 60 60Z"/></g><ellipse cx="60" cy="62" rx="2.6" ry="16" fill="#eafff8"/><circle cx="60" cy="45" r="3.2" fill="#fff"/><path d="M60 43C56 34 51 30 45 27M60 43C64 34 69 30 75 27" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg></div>
+    <div class="bfly l1"><svg viewBox="0 0 120 120"><g class="wL"><path fill="url(#wg3a)" d="M60 56C52 34 36 12 20 14 6 16 8 40 26 52 38 60 52 60 60 56Z"/><path fill="url(#wg3b)" opacity=".92" d="M60 60C50 66 32 72 22 82 14 90 22 104 38 98 50 93 58 76 60 60Z"/></g><g class="wR"><path fill="url(#wg3a)" d="M60 56C68 34 84 12 100 14 114 16 112 40 94 52 82 60 68 60 60 56Z"/><path fill="url(#wg3b)" opacity=".92" d="M60 60C70 66 88 72 98 82 106 90 98 104 82 98 70 93 62 76 60 60Z"/></g><ellipse cx="60" cy="62" rx="2.6" ry="16" fill="#eafff8"/><circle cx="60" cy="45" r="3.2" fill="#fff"/><path d="M60 43C56 34 51 30 45 27M60 43C64 34 69 30 75 27" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg></div>
+  </div>
+
+  <!-- 第 4 组：紫罗兰 -->
+  <div class="g4">
+    <div class="bfly l3"><svg viewBox="0 0 120 120"><g class="wL"><path fill="url(#wg4a)" d="M60 56C52 34 36 12 20 14 6 16 8 40 26 52 38 60 52 60 60 56Z"/><path fill="url(#wg4b)" opacity=".92" d="M60 60C50 66 32 72 22 82 14 90 22 104 38 98 50 93 58 76 60 60Z"/></g><g class="wR"><path fill="url(#wg4a)" d="M60 56C68 34 84 12 100 14 114 16 112 40 94 52 82 60 68 60 60 56Z"/><path fill="url(#wg4b)" opacity=".92" d="M60 60C70 66 88 72 98 82 106 90 98 104 82 98 70 93 62 76 60 60Z"/></g><ellipse cx="60" cy="62" rx="2.6" ry="16" fill="#f6f0ff"/><circle cx="60" cy="45" r="3.2" fill="#fff"/><path d="M60 43C56 34 51 30 45 27M60 43C64 34 69 30 75 27" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg></div>
+    <div class="bfly l2"><svg viewBox="0 0 120 120"><g class="wL"><path fill="url(#wg4a)" d="M60 56C52 34 36 12 20 14 6 16 8 40 26 52 38 60 52 60 60 56Z"/><path fill="url(#wg4b)" opacity=".92" d="M60 60C50 66 32 72 22 82 14 90 22 104 38 98 50 93 58 76 60 60Z"/></g><g class="wR"><path fill="url(#wg4a)" d="M60 56C68 34 84 12 100 14 114 16 112 40 94 52 82 60 68 60 60 56Z"/><path fill="url(#wg4b)" opacity=".92" d="M60 60C70 66 88 72 98 82 106 90 98 104 82 98 70 93 62 76 60 60Z"/></g><ellipse cx="60" cy="62" rx="2.6" ry="16" fill="#f6f0ff"/><circle cx="60" cy="45" r="3.2" fill="#fff"/><path d="M60 43C56 34 51 30 45 27M60 43C64 34 69 30 75 27" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg></div>
+    <div class="bfly l1"><svg viewBox="0 0 120 120"><g class="wL"><path fill="url(#wg4a)" d="M60 56C52 34 36 12 20 14 6 16 8 40 26 52 38 60 52 60 60 56Z"/><path fill="url(#wg4b)" opacity=".92" d="M60 60C50 66 32 72 22 82 14 90 22 104 38 98 50 93 58 76 60 60Z"/></g><g class="wR"><path fill="url(#wg4a)" d="M60 56C68 34 84 12 100 14 114 16 112 40 94 52 82 60 68 60 60 56Z"/><path fill="url(#wg4b)" opacity=".92" d="M60 60C70 66 88 72 98 82 106 90 98 104 82 98 70 93 62 76 60 60Z"/></g><ellipse cx="60" cy="62" rx="2.6" ry="16" fill="#f6f0ff"/><circle cx="60" cy="45" r="3.2" fill="#fff"/><path d="M60 43C56 34 51 30 45 27M60 43C64 34 69 30 75 27" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg></div>
+  </div>
+
+</div>
+
+<!-- ==========================================================
+     边角星星：五种形态（四角星 / 五角星 / 菱形 / 八芒星 / 十字星）
+     ========================================================== -->
+<div class="star-field" aria-hidden="true">
+
+  <!-- 左上角 -->
+  <div class="cluster tl">
+    <span class="star s-cyan s-xl" style="animation-delay:-.4s">
+      <svg viewBox="0 0 24 24"><path d="M12 0c1 7.2 4.8 11 12 12-7.2 1-11 4.8-12 12-1-7.2-4.8-11-12-12 7.2-1 11-4.8 12-12Z"/></svg>
+    </span>
+    <span class="row">
+      <span class="star s-gold s-md" style="animation-delay:-2.1s">
+        <svg viewBox="0 0 24 24"><path d="M12 1.8l3.1 6.6 7.1.9-5.2 4.9 1.3 7-6.3-3.5-6.3 3.5 1.3-7L2.8 9.3l7.1-.9z"/></svg>
+      </span>
+      <span class="star s-violet s-sm" style="animation-delay:-3.4s">
+        <svg viewBox="0 0 24 24"><path d="M12 2l4.4 10L12 22 7.6 12z"/></svg>
+      </span>
+      <span class="star s-teal s-xs" style="animation-delay:-1.2s">
+        <svg viewBox="0 0 24 24"><path d="M12 1l1.6 8.6L22 11l-8.4 1.4L12 21l-1.6-8.6L2 11l8.4-1.4z"/></svg>
+      </span>
+    </span>
+  </div>
+
+  <!-- 右上角 -->
+  <div class="cluster tr">
+    <span class="star s-pink s-xl" style="animation-delay:-1.6s">
+      <svg viewBox="0 0 24 24"><path d="M12 0l1.7 8.6L21 3l-5.4 7.4L24 12l-8.4 1.6L21 21l-7.3-5.6L12 24l-1.7-8.6L3 21l5.4-7.4L0 12l8.4-1.6L3 3l7.3 5.6z"/></svg>
+    </span>
+    <span class="row">
+      <span class="star s-cyan s-sm" style="animation-delay:-2.8s">
+        <svg viewBox="0 0 24 24"><path d="M12 0c1 7.2 4.8 11 12 12-7.2 1-11 4.8-12 12-1-7.2-4.8-11-12-12 7.2-1 11-4.8 12-12Z"/></svg>
+      </span>
+      <span class="star s-gold s-xs" style="animation-delay:-.9s">
+        <svg viewBox="0 0 24 24"><path d="M12 2l4.4 10L12 22 7.6 12z"/></svg>
+      </span>
+    </span>
+    <span class="ring"></span>
+  </div>
+
+  <!-- 左下角 -->
+  <div class="cluster bl">
+    <span class="star s-violet s-lg" style="animation-delay:-.7s">
+      <svg viewBox="0 0 24 24"><path d="M12 1.8l3.1 6.6 7.1.9-5.2 4.9 1.3 7-6.3-3.5-6.3 3.5 1.3-7L2.8 9.3l7.1-.9z"/></svg>
+    </span>
+    <span class="star s-teal s-sm" style="animation-delay:-2.4s">
+      <svg viewBox="0 0 24 24"><path d="M12 1l1.6 8.6L22 11l-8.4 1.4L12 21l-1.6-8.6L2 11l8.4-1.4z"/></svg>
+    </span>
+    <span class="star s-cyan s-xs" style="animation-delay:-3.9s">
+      <svg viewBox="0 0 24 24"><path d="M12 0c1 7.2 4.8 11 12 12-7.2 1-11 4.8-12 12-1-7.2-4.8-11-12-12 7.2-1 11-4.8 12-12Z"/></svg>
+    </span>
+  </div>
+
+  <!-- 右下角 -->
+  <div class="cluster br">
+    <span class="star s-gold s-sm" style="animation-delay:-3.1s">
+      <svg viewBox="0 0 24 24"><path d="M12 2l4.4 10L12 22 7.6 12z"/></svg>
+    </span>
+    <span class="row">
+      <span class="star s-pink s-md" style="animation-delay:-1.4s">
+        <svg viewBox="0 0 24 24"><path d="M12 0l1.7 8.6L21 3l-5.4 7.4L24 12l-8.4 1.6L21 21l-7.3-5.6L12 24l-1.7-8.6L3 21l5.4-7.4L0 12l8.4-1.6L3 3l7.3 5.6z"/></svg>
+      </span>
+      <span class="star s-violet s-xs" style="animation-delay:-2.6s">
+        <svg viewBox="0 0 24 24"><path d="M12 1l1.6 8.6L22 11l-8.4 1.4L12 21l-1.6-8.6L2 11l8.4-1.4z"/></svg>
+      </span>
+    </span>
+  </div>
+</div>
+
+<!-- 顶部滚动进度条 -->
+<div class="progress" aria-hidden="true"><i id="progressBar"></i></div>
+
+<!-- 顶部导航 -->
+<header class="nav">
+  <div class="nav-in">
+    <a class="brand" href="#home">
+      <span class="dot"></span>
+      刘玉娇 <small>LYJ · CS</small>
+    </a>
+    <nav class="nav-links" aria-label="页面导航">
+      <a class="nav-link active" href="#home">首页</a>
+      <a class="nav-link" href="#about">关于我</a>
+      <a class="nav-link" href="#skills">技能</a>
+      <a class="nav-link" href="#projects">项目</a>
+      <a class="nav-link" href="#contact">联系</a>
+    </nav>
+  </div>
+</header>
+
+<!-- 内容层：浮在背景与蝴蝶之上 -->
+<div style="position:relative;z-index:4">
+
+<main>
+
+  <!-- ==========================================================
+       模块一：首屏全屏欢迎页
+       ========================================================== -->
+  <section class="section hero" id="home">
+    <span class="hero-glow" aria-hidden="true"></span>
+
+    <div class="hero-in" id="heroIn">
+
+      <!-- 头像：图片已转成 Base64 内嵌，保持“单文件 + 零外部依赖” -->
+      <div class="avatar">
+        <img class="avatar-img" src="data:image/jpeg;base64,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"
+             alt="我的头像：一只戴着蓝色毛绒帽、吐着舌头的小狗" width="420" height="420">
+      </div>
+
+      <!-- 姓名：字号已收小，与头像比例协调 -->
+      <h1 class="hero-name grad">刘玉娇</h1>
+
+      <p class="hero-role">
+        <span>计算机专业</span><span class="sep"></span>
+        <span>大一在读</span><span class="sep"></span>
+        <span>正在进步中</span>
+      </p>
+
+      <p class="hero-slogan">持续学习，<em>动手创造</em>，用代码实现小想法</p>
+
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#about">
+          认识一下我
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M5 12h14M13 6l6 6-6 6"/>
+          </svg>
+        </a>
+        <a class="btn btn-ghost" href="#skills">看看我在学什么</a>
+      </div>
+
+      <!-- 三条真实的学习状态 -->
+      <div class="hero-facts">
+        <div class="fact"><b class="grad">C 语言</b><span>目前主攻</span></div>
+        <div class="fact"><b class="grad">0 → 1</b><span>项目正在攒</span></div>
+        <div class="fact"><b class="grad">每天</b><span>写一点代码</span></div>
+      </div>
+    </div>
+
+    <!-- 动态向下指引箭头 -->
+    <a class="scroll-cue" href="#about" aria-label="向下滚动查看关于我">
+      <span>SCROLL</span>
+      <span class="line" aria-hidden="true"></span>
+      <span class="chev" aria-hidden="true"></span>
+    </a>
+  </section>
+
+  <div class="divider" aria-hidden="true">
+    <span class="seg"></span>
+    <span class="node"><svg viewBox="0 0 24 24"><path d="M12 0c1 7.2 4.8 11 12 12-7.2 1-11 4.8-12 12-1-7.2-4.8-11-12-12 7.2-1 11-4.8 12-12Z"/></svg></span>
+    <span class="seg rev"></span>
+  </div>
+
+  <!-- ==========================================================
+       模块二：个人自我介绍
+       ========================================================== -->
+  <section class="section" id="about">
+    <div class="container">
+
+      <div class="sec-head reveal">
+        <span class="sec-tag">01 / ABOUT ME</span>
+        <h2 class="sec-title grad">关于我：一个还在入门路上的准程序员</h2>
+        <p class="sec-sub">这份介绍不写空话，记录的是一名大一学生真实的听课状态、写代码的习惯，以及这门课带给我的改变。</p>
+      </div>
+
+      <div class="reveal">
+        <p class="quote">
+          我是 <b>刘玉娇</b>，计算机专业大一学生。开学前，我对计算机的想象还停留在“会装系统、能修电脑”；
+          真正开始写代码之后才发现，它更像一门需要耐心的手艺 —— 一行一行，把脑子里的想法翻译成机器能懂的语言。
+          现在的我水平还很初级，会为一个小小的报错折腾半小时，也会因为程序终于跑通而高兴一整天。
+          下面这些，就是我目前最真实的学法。
+        </p>
+      </div>
+
+      <div class="grid-2">
+
+        <!-- 学习态度 -->
+        <div class="reveal">
+          <article class="card" style="--c:#5ee7ff">
+            <div class="head-row">
+              <span class="chip">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+                     stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 3l2.4 5.2 5.6.7-4.1 3.9 1 5.6-4.9-2.8-4.9 2.8 1-5.6L4 8.9l5.6-.7z"/>
+                </svg>
+              </span>
+              <div>
+                <h3>学习态度 · 不糊弄每一次作业</h3>
+                <div class="kicker">ATTITUDE</div>
+              </div>
+            </div>
+            <p class="desc">
+              我给自己定了一条很朴素的原则：作业可以做得不漂亮，但不能是抄来的，也不能直接丢给 AI 代写。
+              上课时老师演示的代码，我会一行行抄进笔记本；课后一定自己再敲一遍，哪怕只是最简单的输入输出。
+            </p>
+            <p class="desc">
+              遇到问题先看报错信息、先查文档，实在卡住了再问同学和老师。我写得不快，
+              但我相信“每天写一点、每周解决一类问题”是能攒起来的。
+            </p>
+          </article>
+        </div>
+
+        <!-- 学习方式 -->
+        <div class="reveal">
+          <article class="card" style="--c:#9a7bff">
+            <div class="head-row">
+              <span class="chip">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+                     stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 6h16M4 12h10M4 18h7"/><circle cx="18" cy="18" r="2.4"/>
+                </svg>
+              </span>
+              <div>
+                <h3>学习方式 · 先跑通，再想明白</h3>
+                <div class="kicker">METHOD</div>
+              </div>
+            </div>
+            <p class="desc">
+              我的习惯是先用最小的代码把功能跑通，再回头追问“它为什么能跑”。
+              比如学完循环和数组之后，我会自己写一个小程序去统计成绩、找最大值，
+              让刚学到的抽象知识马上有一次被使用的机会。
+            </p>
+            <p class="desc">
+              错题和 bug 我会集中记在一个文档里，按“现象 —— 原因 —— 改法”三行写清楚。
+              下次再遇到类似的问题，先翻自己的记录，而不是立刻去问别人。
+            </p>
+          </article>
+        </div>
+
+        <!-- 本学期的小目标 -->
+        <div class="reveal span-2">
+          <article class="card" style="--c:#8affd8">
+            <div class="head-row">
+              <span class="chip">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+                     stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 12.5l4.5 4.5L19 7.5"/>
+                </svg>
+              </span>
+              <div>
+                <h3>本学期的小目标</h3>
+                <div class="kicker">PLAN · 说给自己听</div>
+              </div>
+            </div>
+            <ul class="goals">
+              <li><span class="idx">01</span>把 C 语言的指针和结构体彻底弄懂，独立写完一个能读写文件的学生成绩管理系统。</li>
+              <li><span class="idx">02</span>坚持每天至少打开一次代码编辑器，哪怕只写 20 分钟。</li>
+              <li><span class="idx">03</span>学会用 Git 管理所有课程的代码，每次提交都写清楚自己改了什么。</li>
+              <li><span class="idx">04</span>让下面这个“项目展示”栏，在学期结束前不再空着。</li>
+            </ul>
+          </article>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <div class="divider" aria-hidden="true">
+    <span class="seg"></span>
+    <span class="node"><svg viewBox="0 0 24 24"><path d="M12 2l4.4 10L12 22 7.6 12z"/></svg></span>
+    <span class="seg rev"></span>
+  </div>
+
+  <!-- ==========================================================
+       模块三：专业化技能展示（当前主攻：C 语言）
+       ========================================================== -->
+  <section class="section" id="skills">
+    <div class="container">
+
+      <div class="sec-head reveal">
+        <span class="sec-tag">02 / SKILLS</span>
+        <h2 class="sec-title grad">技能地图：目前主攻 C 语言</h2>
+        <p class="sec-sub">这一栏只写我现在真的在学的东西。进度条代表我目前的真实水平，不是自我夸大的数字 —— 不满的地方，正是我下一步要去补的地方。</p>
+      </div>
+
+      <!-- C 语言主卡 -->
+      <div class="reveal">
+        <article class="card" style="--c:#5ee7ff">
+          <div class="head-row">
+            <span class="chip">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+                   stroke-linecap="round" stroke-linejoin="round">
+                <path d="M8.5 6.5L4 12l4.5 5.5M15.5 6.5L20 12l-4.5 5.5"/>
+              </svg>
+            </span>
+            <div>
+              <h3>C 语言 · 正在学</h3>
+              <div class="kicker">MY FIRST PROGRAMMING LANGUAGE</div>
+            </div>
+          </div>
+          <p class="desc">
+            跟着课程进度系统地学：从 printf / scanf 的输入输出，到 if、switch 的流程控制，
+            再到 for / while 循环、函数和一维数组。现在能独立完成课本上的练习题，
+            会自己写测试数据、用 printf 打点找错误，也能看懂编译器给出的报错信息。
+          </p>
+
+          <div class="sub-bars">
+            <div class="sub-bar">
+              <div class="label"><span>输入输出与基础语法</span><b>76%</b></div>
+              <div class="bar" style="--w:76%"><i></i></div>
+            </div>
+            <div class="sub-bar">
+              <div class="label"><span>流程控制（if / switch / 循环）</span><b>66%</b></div>
+              <div class="bar" style="--w:66%"><i></i></div>
+            </div>
+            <div class="sub-bar">
+              <div class="label"><span>函数与数组</span><b>46%</b></div>
+              <div class="bar" style="--w:46%"><i></i></div>
+            </div>
+            <div class="sub-bar">
+              <div class="label"><span>指针与内存（刚入门）</span><b>18%</b></div>
+              <div class="bar" style="--w:18%"><i></i></div>
+            </div>
+          </div>
+
+          <div class="note">
+            <b>最想啃下的硬骨头：</b>指针。目前能看懂简单的指针定义和取值，但还不太敢在程序里大胆使用。
+            计划用“每天手写三个指针小例子”的方式，把它一点点磨熟。
+          </div>
+        </article>
+      </div>
+
+      <!-- 三张辅助卡片 -->
+      <div class="grid-3" style="margin-top:24px">
+
+        <div class="reveal">
+          <article class="card skill" style="--c:#ffd479">
+            <div class="skill-top">
+              <span class="chip">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+                     stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="16" rx="3"/><path d="M7.5 10l2.5 2.5-2.5 2.5M13 15h4"/>
+                </svg>
+              </span>
+              <div>
+                <h3>开发环境 · 正在熟悉</h3>
+                <div class="sub">工具用顺了，写代码才不别扭</div>
+              </div>
+            </div>
+            <p class="desc">
+              主要用课程推荐的 Code::Blocks 写和调试程序，也学会了在命令行里用 gcc 自己编译一次
+              （<code>gcc main.c -o main</code>），这样能更直观地看到“编译”这一步到底做了什么。
+            </p>
+            <div class="tags">
+              <span class="tag">Code::Blocks</span><span class="tag">MinGW / gcc</span>
+              <span class="tag">命令行编译</span><span class="tag">printf 调试</span>
+            </div>
+          </article>
+        </div>
+
+        <div class="reveal">
+          <article class="card skill" style="--c:#9a7bff">
+            <div class="skill-top">
+              <span class="chip">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+                     stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 5h14v14H5zM8.5 9.5h7M8.5 13h4"/>
+                </svg>
+              </span>
+              <div>
+                <h3>学习习惯 · 正在形成</h3>
+                <div class="sub">比聪明更靠得住的是规律</div>
+              </div>
+            </div>
+            <p class="desc">
+              上课手写笔记，课后一定自己重敲一遍；每个 bug 都记成“现象—原因—改法”；
+              不懂先读报错和文档，再问人。AI 只用来说明概念和检查代码，不代替我写作业。
+            </p>
+            <div class="tags">
+              <span class="tag">手写笔记</span><span class="tag">课后重敲</span>
+              <span class="tag">bug 记录本</span><span class="tag">先文档后提问</span>
+            </div>
+          </article>
+        </div>
+
+        <div class="reveal">
+          <article class="card skill" style="--c:#8affd8">
+            <div class="skill-top">
+              <span class="chip">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+                     stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>
+                </svg>
+              </span>
+              <div>
+                <h3>下阶段计划</h3>
+                <div class="sub">一步一步来，不着急</div>
+              </div>
+            </div>
+            <p class="desc">
+              先把指针和结构体拿下，再学读写文件，让程序能“记住”数据；
+              之后想再接触一点 Python 和前端，把视野打开。目标是每个知识点都写一个小 demo。
+            </p>
+            <div class="tags">
+              <span class="tag">指针 / 结构体</span><span class="tag">文件读写</span>
+              <span class="tag">Python 入门</span><span class="tag">前端基础</span>
+            </div>
+          </article>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <div class="divider" aria-hidden="true">
+    <span class="seg"></span>
+    <span class="node"><svg viewBox="0 0 24 24"><path d="M12 0l1.7 8.6L21 3l-5.4 7.4L24 12l-8.4 1.6L21 21l-7.3-5.6L12 24l-1.7-8.6L3 21l5.4-7.4L0 12l8.4-1.6L3 3l7.3 5.6z"/></svg></span>
+    <span class="seg rev"></span>
+  </div>
+
+  <!-- ==========================================================
+       模块四：创新项目展示（暂未，未来会逐渐增加）
+       ========================================================== -->
+  <section class="section" id="projects">
+    <div class="container">
+
+      <div class="sec-head reveal">
+        <span class="sec-tag">03 / PROJECTS</span>
+        <h2 class="sec-title grad">项目展示：暂未，正在攒第一个</h2>
+        <p class="sec-sub">这一栏现在还空着 —— 不是不想做，而是想先把基础打扎实。下面是我给自己排的项目路线，完成一个，就补一个上来。</p>
+      </div>
+
+      <div class="reveal">
+        <article class="card empty">
+          <span class="stamp">STATUS · COMING SOON</span>
+
+          <div class="icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3c3.5 2 5.2 5.6 5.2 9.2L19 15.5v3.1l-3.2-1.4a6.4 6.4 0 0 1-7.6 0L5 18.6v-3.1l1.8-3.3C6.8 8.6 8.5 5 12 3Z"/>
+              <circle cx="12" cy="10" r="1.9"/>
+              <path d="M12 16.6V21M9.4 20.4 12 21l2.6-.6"/>
+            </svg>
+          </div>
+
+          <h3 class="grad">项目区暂为空 · 出发时间 2026 年秋季学期</h3>
+
+          <p>
+            这里先留一个位置。等我写完第一个项目，会把它连同思路、代码和踩过的坑一起放上来 ——
+            这一栏会随着我的学习进度慢慢变多。
+          </p>
+
+          <!-- 项目路线图 -->
+          <div class="roadmap">
+            <div class="step">
+              <span class="no">01</span>
+              <span class="txt">
+                <b>打好基础：C 语言语法与编程思维</b>
+                <span>输入输出、流程控制、循环、函数、数组，把课本习题独立写完一遍。</span>
+              </span>
+              <span class="state">进行中</span>
+            </div>
+            <div class="step">
+              <span class="no">02</span>
+              <span class="txt">
+                <b>让这一栏慢慢变满</b>
+                <span>每完成一个项目就补一张卡片：简介、技术、我的收获、踩过的坑。</span>
+              </span>
+              <span class="state long">长期</span>
+            </div>
+          </div>
+
+          <div class="note">
+            <b>一点说明：</b>如果你现在就想看看“作品”，这个页面本身算一次实践 ——
+            它是我从零手写 HTML 与 CSS 完成的第一件完整的东西，
+            也让我第一次真正理解了“响应式”和“层叠”到底意味着什么。
+          </div>
+        </article>
+      </div>
+
+    </div>
+  </section>
+
+  <div class="divider" aria-hidden="true">
+    <span class="seg"></span>
+    <span class="node"><svg viewBox="0 0 24 24"><path d="M12 1.8l3.1 6.6 7.1.9-5.2 4.9 1.3 7-6.3-3.5-6.3 3.5 1.3-7L2.8 9.3l7.1-.9z"/></svg></span>
+    <span class="seg rev"></span>
+  </div>
+
+</main>
+
+<!-- ==========================================================
+     模块五：页脚（版权 / 课程作业说明）
+     ========================================================== -->
+<footer class="footer" id="contact">
+  <div class="footer-in">
+
+    <div>
+      <div class="brand-line">
+        <span style="width:11px;height:11px;border-radius:50%;flex:0 0 auto;
+              background:linear-gradient(135deg,#5ee7ff,#9a7bff,#ff7ad9);
+              box-shadow:0 0 14px rgba(154,123,255,.9)"></span>
+        <b class="grad">刘玉娇</b>
+      </div>
+      <p>计算机专业 · 大一在读</p>
+      <p style="margin-top:8px">持续学习，动手创造，用代码实现小想法。</p>
+      <p style="margin-top:14px;font-family:var(--mono);font-size:12px;letter-spacing:.1em;color:var(--muted-2)">
+        KEEP LEARNING · KEEP BUILDING
+      </p>
+    </div>
+
+  </div>
+
+  <div class="footer-bottom">
+    <p class="signature">— 代码还很长，慢慢写 —</p>
+    <p>© 2026 刘玉娇 · 保留所有权利 ｜ 通识课程结课作业 · 个人主页</p>
+    <p class="mono" style="margin-top:6px">Handcrafted with HTML · CSS · JavaScript ｜ 零外部依赖 ｜ 最后更新：2026.10</p>
+  </div>
+</footer>
+
+</div><!-- /内容层 -->
+
+<!-- 返回顶部 -->
+<button class="to-top" id="toTop" type="button" aria-label="返回顶部">
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg>
+</button>
+
+<script>
+/* ==========================================================================
+   交互脚本（原生 JS，零依赖）
+   1) 开场幕布时间线：左右幕布 1.2s 同步拉开 → 内容淡入提亮 → 解锁交互
+   2) 夜空星点：生成随机的小星星，让背景有细碎的闪动
+   3) 滚动进场动画：IntersectionObserver 添加 .in
+   4) 导航高亮：滚动时高亮当前区块
+   5) 卡片柔光跟随鼠标（悬浮高亮增强）
+   6) 顶部滚动进度条 + 返回顶部
+   7) 平滑滚动兜底（兼容旧浏览器）
+   ========================================================================== */
+(function () {
+  'use strict';
+
+  var root = document.documentElement;
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------- 1) 开场幕布时间线 ---------- */
+  (function curtainIntro() {
+    var curtain = document.getElementById('curtain');
+    var heroIn  = document.getElementById('heroIn');
+
+    var OPEN_DELAY = 180;      // 先让幕布静止一瞬，再开始拉开
+    var CURTAIN_MS = 1200;     // 幕布拉开时长（与 CSS 中的 --curtain-time 保持一致）
+    var LIGHT_MS   = 600;      // 幕布移走后，内容淡入提亮的时长
+
+    function unlock() {
+      root.classList.remove('is-loading');   // 解锁滚动与交互
+      document.body.classList.remove('is-loading');
+    }
+    function hideCurtain() {
+      if (curtain) curtain.classList.add('done');
+    }
+
+    // 系统开启“减少动态效果”时：直接进入最终状态
+    if (reduceMotion) {
+      if (curtain) curtain.style.display = 'none';
+      if (heroIn) heroIn.classList.add('peek', 'lit');
+      unlock();
+      return;
+    }
+
+    setTimeout(function () {
+      if (curtain) curtain.classList.add('open');            // 幕布向两侧滑出
+      if (heroIn)  heroIn.classList.add('peek');             // 拉开过程中，中间内容慢慢露出
+    }, OPEN_DELAY);
+
+    // 幕布完全移走 → 头像与文字再轻微淡入提亮
+    setTimeout(function () {
+      hideCurtain();
+      if (heroIn) heroIn.classList.add('lit');
+      // 注意：这里同时解锁交互，保证“幕布走完即可操作”的流畅体验
+      unlock();
+    }, OPEN_DELAY + CURTAIN_MS);
+
+    // 提亮动画结束后，做一次收尾（移除监听、确保状态干净）
+    setTimeout(function () { /* 动画结束：页面完全就绪 */ },
+      OPEN_DELAY + CURTAIN_MS + LIGHT_MS);
+  })();
+
+  /* ---------- 2) 夜空星点 ---------- */
+  (function buildSparkles() {
+    var box = document.getElementById('sparkles');
+    if (!box) return;
+    var count = window.innerWidth < 760 ? 12 : 22;
+    var frag = document.createDocumentFragment();
+    for (var i = 0; i < count; i++) {
+      var s = document.createElement('span');
+      s.className = 'spk';
+      s.style.left = (Math.random() * 98) + '%';
+      s.style.top = (Math.random() * 98) + '%';
+      var size = (Math.random() < .7 ? 5 : 8) + 'px';       // 大部分是小星点，少数亮一点
+      s.style.width = size;
+      s.style.height = size;
+      s.style.animationDelay = (-Math.random() * 6).toFixed(2) + 's';
+      s.style.animationDuration = (3.5 + Math.random() * 4).toFixed(2) + 's';
+      frag.appendChild(s);
+    }
+    box.appendChild(frag);
+  })();
+
+  /* ---------- 3) 滚动进场 ---------- */
+  (function revealOnScroll() {
+    var items = document.querySelectorAll('.reveal');
+    if (!('IntersectionObserver' in window)) {
+      for (var i = 0; i < items.length; i++) items[i].classList.add('in');
+      return;
+    }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('in');
+          io.unobserve(entry.target);     // 只播一次，避免来回闪动
+        }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+    items.forEach(function (el) { io.observe(el); });
+  })();
+
+  /* ---------- 4) 导航高亮 ---------- */
+  (function activeNav() {
+    var links = Array.prototype.slice.call(document.querySelectorAll('.nav-link'));
+    var sections = links.map(function (l) {
+      return document.querySelector(l.getAttribute('href'));
+    }).filter(Boolean);
+    if (!('IntersectionObserver' in window) || !sections.length) return;
+
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        links.forEach(function (l) {
+          l.classList.toggle('active', l.getAttribute('href') === '#' + e.target.id);
+        });
+      });
+    }, { rootMargin: '-45% 0px -50% 0px', threshold: 0 });
+    sections.forEach(function (s) { io.observe(s); });
+  })();
+
+  /* ---------- 5) 卡片柔光跟随鼠标 ---------- */
+  (function spotlight() {
+    if (reduceMotion || window.matchMedia('(hover: none)').matches) return;
+    window.addEventListener('pointermove', function (e) {
+      var card = e.target.closest ? e.target.closest('.card') : null;
+      if (!card) return;
+      var r = card.getBoundingClientRect();
+      card.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+      card.style.setProperty('--my', (e.clientY - r.top) + 'px');
+    }, { passive: true });
+  })();
+
+  /* ---------- 6) 滚动进度条 + 返回顶部 ---------- */
+  (function scrollUI() {
+    var bar = document.getElementById('progressBar');
+    var top = document.getElementById('toTop');
+    var ticking = false;
+
+    function update() {
+      var doc = document.documentElement;
+      var max = doc.scrollHeight - doc.clientHeight;
+      var p = max > 0 ? doc.scrollTop / max : 0;
+      if (bar) bar.style.transform = 'scaleX(' + p + ')';
+      if (top) top.classList.toggle('show', doc.scrollTop > 600);
+      ticking = false;
+    }
+    window.addEventListener('scroll', function () {
+      if (!ticking) { ticking = true; window.requestAnimationFrame(update); }
+    }, { passive: true });
+    update();
+
+    if (top) {
+      top.addEventListener('click', function () {
+        window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
+      });
+    }
+  })();
+
+  /* ---------- 7) 平滑滚动兜底 ---------- */
+  (function smoothAnchor() {
+    if ('scrollBehavior' in document.documentElement.style) return;
+    document.addEventListener('click', function (e) {
+      var a = e.target.closest && e.target.closest('a[href^="#"]');
+      if (!a) return;
+      var target = document.querySelector(a.getAttribute('href'));
+      if (!target) return;
+      e.preventDefault();
+      window.scrollTo(0, target.getBoundingClientRect().top + window.pageYOffset - 76);
+    });
+  })();
+})();
+</script>
+</body>
+</html>
