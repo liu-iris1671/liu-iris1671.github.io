@@ -360,7 +360,7 @@ html:not(.is-loading) .nav{opacity:1}
   width:min(1140px,90vw);margin-inline:auto;height:64px;
   display:flex;align-items:center;justify-content:space-between;gap:14px;
 }
-.brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.02em}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.02em;white-space:nowrap}
 .brand .dot{
   width:11px;height:11px;border-radius:50%;
   background:linear-gradient(135deg,var(--cyan),var(--violet),var(--pink));
@@ -373,7 +373,7 @@ html:not(.is-loading) .nav{opacity:1}
 .nav-links{display:flex;align-items:center;gap:6px}
 .nav-link{
   position:relative;padding:8px 13px;border-radius:99px;font-size:14px;
-  color:var(--muted);transition:color .3s var(--ease);
+  color:var(--muted);white-space:nowrap;transition:color .3s var(--ease);
 }
 .nav-link::after{                              /* 鼠标悬浮高亮：底部流光 */
   content:"";position:absolute;left:13px;right:13px;bottom:4px;height:1.5px;border-radius:2px;
@@ -766,6 +766,7 @@ html:not(.is-loading) .nav{opacity:1}
   .span-2{grid-column:auto}
   .nav-link{padding:7px 10px;font-size:13px}
   .brand small{display:none}
+  .nav-in{gap:8px}
   /* 小屏幕减少蝴蝶图层与角饰，保证流畅、不与文字打架 */
   .g3,.g4{display:none}
   .bfly .l3{display:none}
@@ -780,6 +781,14 @@ html:not(.is-loading) .nav{opacity:1}
   .to-top{right:14px;bottom:14px;width:42px;height:42px}
   .step{flex-wrap:wrap}
   .step .state{margin-left:46px}
+}
+/* 窄屏手机：把顶部导航压缩，保证一行放得下（不会被拆成竖排） */
+@media (max-width:480px){
+  .nav-in{width:94vw;height:58px;gap:6px}
+  .brand{font-size:14px;gap:8px}
+  .brand .dot{width:9px;height:9px}
+  .nav-links{gap:0}
+  .nav-link{padding:6px 7px;font-size:12.5px;letter-spacing:0}
 }
 @media (max-width:420px){
   .bfly .l2{display:none}
